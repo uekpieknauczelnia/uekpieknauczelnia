@@ -1,0 +1,27 @@
+- hosts: proxy_nodes
+  become: yes
+  vars:
+    invitation: "Drogi uzytkowniku"
+    base_path: /var/www/html
+    app_instances:
+      - 172.31.24.198:80
+  tasks:
+    - name: "install nginx package"
+      yum:
+        name: nginx
+        state: present
+    - file:
+        path: "{{ base_path }}"
+        state: directory
+    - name: "copy welcome page"
+      template:
+        src: templates/index.html
+        dest: "{{ base_path }}/index.html"
+    - name: "place nginx config in right place"
+      template:
+        src: templates/nginx.conf.j2
+        dest: /etc/nginx/conf.d/commerce.conf
+    - name: "restart nginx service"
+      service:
+        name: nginx
+        state: restarted

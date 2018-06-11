@@ -1,0 +1,36 @@
+- hosts: app_nodes
+  become: yes
+  vars:
+    base_path: /var/www/html
+    php_packages:
+      - php71
+  tasks:
+    - name: Install web server
+      yum:
+        name: "{{item}}"
+        state: present
+      with_items:
+        - httpd24
+        - httpd24-tools
+
+    - name: "install php with modules"
+      yum:
+        name: "{{item}}"
+        state: present
+      with_items: "{{php_packages}}"
+
+    - name: "Copy Apache configuration"
+      template: src=templates/apache-pamietaj.conf.j2 dest=/etc/httpd/conf.d/wordpress.conf
+
+    - name: "restart Apache"
+      service: 
+        name: httpd
+        state: restarted
+    - name: "setup directory"
+      file:
+        path: "{{ base_path }}"
+        state: directory
+    - name: "copyD"
+      template:
+        src: templates/witaj.php
+        dest: "{{ base_path }}/witaj.php"

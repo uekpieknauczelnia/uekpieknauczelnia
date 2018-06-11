@@ -1,0 +1,85 @@
+- hosts: app_nodes
+  vars:
+    os_packages:
+      - gcc
+      - MySQL-python   
+    php_packages:
+      - php71
+      - php71-mysqlnd
+      - php71-intl
+    wp_install_path: "/var/www/wordpress"
+    wp_db_name: "wordpress" 
+    wp_db_pass: "wordpress"
+    wp_db_user: "wordpress"
+  become: yes
+  tasks:
+    - name: "Install required os packages"
+      yum:
+        name: "{{item}}"
+      with_items: "{{os_packages}}"
+
+    - name: Install web server
+      yum:
+        name: "{{item}}"
+        state: present
+      with_items:
+        - httpd24
+        - httpd24-tools
+
+    - name: "install php with modules"
+      yum:
+        name: "{{item}}"
+        state: present
+      with_items: "{{php_packages}}"
+
+    - name: "Copy Apache configuration"
+      template: src=templates/apache-vhost.conf.j2 dest=/etc/httpd/conf.d/wordpress.conf
+
+    - name: "restart Apache"
+      service: 
+        name: httpd
+        state: restarted
+
+    - name: "MySQL installation"
+      yum: 
+        name: "{{item}}"
+        state: present
+      with_items:
+         - mysql56-server
+         - mysql56-devel
+
+    - name: "Install python mysql extra dependency"
+      pip: 
+        name: MySQL-python
+
+    - name: "Restart MySQL"
+      service: 
+        name: mysqld 
+        state: restarted
+
+    - name: "create database"
+      mysql_db: 
+        name: "{{wp_db_name}}"
+        state: present
+
+    - mysql_user: 
+        name: "{{wp_db_user}}"
+        password: "{{wp_db_pass}}"
+        priv: "{{wp_db_name}}.*:ALL"
+        host: localhost
+        state: present
+
+    - name: "Download wordpress"
+      get_url:
+        url: https://wordpress.org/latest.zip
+        dest: /tmp/wordpress.zip
+    - name: "setup directory"
+      file:
+        path: /var/www/wordpress
+        state: directory
+
+    - name: "unzip wp archive"
+      unarchive: src=/tmp/wordpress.zip dest=/var/www copy=no
+
+    - name: "Copy Wordpress Conf"
+      template: src=templates/wp-config.php.j2 dest={{wp_install_path}}/wp-config.php

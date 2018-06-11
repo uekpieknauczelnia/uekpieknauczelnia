@@ -1,0 +1,16 @@
+upstream blog{
+ {%for address in app_instances%}
+ server {{ address }};
+ {%endfor%}
+}
+
+server{
+ listen 80;
+ server_name {{ ansible_host }};
+
+ location / {
+ proxy_pass http://blog;
+ }
+}
+
+
